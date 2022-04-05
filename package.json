@@ -1,0 +1,20 @@
+{
+  "name": "obsidian-daily-todo-pro",
+  "version": "0.0.1",
+  "description": "get things dead day by day - enhance your daily note",
+  "main": "main.js",
+  "scripts": {
+    "dev": "rollup --config rollup.config.js -w",
+    "build": "rollup --config rollup.config.js --environment BUILD:production"
+  },
+  "keywords": [],
+  "author": "Die4passion",
+  "license": "MIT",
+  "devDependencies": {
+    "obsidian": "latest"
+  },
+  "dependencies": {
+    "@rollup/plugin-typescript": "^8.3.1",
+    "obsidian-daily-notes-interface": "^0.9.4"
+  }
+}
