@@ -355,7 +355,7 @@ export default class RolloverTodosPlugin extends Plugin {
          * 5. 标题自定义
          */
         if (displayTodayInHistory) {
-          let lastYearToday = ['\n' + todayHistoryHeader + '\n']
+          let lastYearToday = [todayHistoryHeader + '\n']
 
           // const today = new Date()
 
