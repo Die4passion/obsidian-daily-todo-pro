@@ -145,33 +145,36 @@ export default class RolloverTodosPlugin extends Plugin {
       // console.log(unfinishedTodosRegex)
       const my_headerIdentify = '#'.repeat(templateHeadingLength) + ' '
       let header_count = 0
+      let my_todo_start_now = false
 
       let todos_yesterday = Array.from(
         contents.matchAll(unfinishedTodosRegex),
         m => m[0]
       )
-      // 1. 筛选 等于templateHeading才开始循环
-      todos_yesterday = todos_yesterday.splice(
-        todos_yesterday.indexOf(templateHeading)
-      )
 
       for (let i = 0; i < todos_yesterday.length; i++) {
-        if (todos_yesterday[i].startsWith(my_headerIdentify)) {
-          if (header_count > 0) {
-            break
-          }
-          header_count++
-        } else {
-          if (todos_yesterday[i].startsWith('#')) {
-            if (i > 0 && todos_yesterday[i - 1].endsWith('\n')) {
-              todos_yesterday[i] = todos_yesterday[i] + '\n'
-            } else {
-              todos_yesterday[i] = '\n' + todos_yesterday[i] + '\n'
+        // 1. 筛选 等于templateHeading才开始循环
+        if (todos_yesterday[i].startsWith(templateHeading)) {
+          my_todo_start_now = true
+          continue
+        }
+        if (my_todo_start_now) {
+          if (todos_yesterday[i].startsWith(my_headerIdentify)) {
+            if (header_count > 0) {
+              break
             }
+            header_count++
+          } else {
+            if (todos_yesterday[i].startsWith('# ')) {
+              if (i > 0 && todos_yesterday[i - 1].endsWith('\n')) {
+                todos_yesterday[i] = todos_yesterday[i] + '\n'
+              } else {
+                todos_yesterday[i] = '\n' + todos_yesterday[i] + '\n'
+              }
+            }
+            //
+            my_todo.push(todos_yesterday[i])
           }
-          // 如果连续的# 没有 - [] 会多一个空行
-          //
-          my_todo.push(todos_yesterday[i])
         }
       }
 
@@ -262,7 +265,6 @@ export default class RolloverTodosPlugin extends Plugin {
         todayHistoryCount
       } = this.settings
 
-
       // check if there is a daily note from yesterday
       const lastDailyNote = this.getLastDailyNote()
       if (lastDailyNote == null) return
@@ -316,7 +318,6 @@ export default class RolloverTodosPlugin extends Plugin {
       let templateHeadingNotFoundMessage = ''
       const templateHeadingSelected = templateHeading !== 'none'
 
-      // console.log(todos_today)
 
       if (todos_today.length > 0) {
         let dailyNoteContent = await this.app.vault.read(file)
@@ -384,7 +385,6 @@ export default class RolloverTodosPlugin extends Plugin {
 
           const lastYearToday_String = `\n${lastYearToday.join('\n')}`
 
-          // console.log(lastYearToday_String)
 
           dailyNoteContent += lastYearToday_String
         }
@@ -405,8 +405,6 @@ export default class RolloverTodosPlugin extends Plugin {
 
         for (let i = lines.length; i >= 0; i--) {
           if (todos_yesterday.includes(lines[i])) {
-            // console.log(i)
-            // console.log(lines.length)
             lines.splice(i, 1)
           }
         }
@@ -482,8 +480,6 @@ export default class RolloverTodosPlugin extends Plugin {
       callback: () => {
         // const activeFile = this.createSelectedFileStore();
         const existingFile = this.getLastDailyNote(1)
-        // console.log(activeFile)
-        // console.log(existingFile)
         const { workspace } = this.app
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         // const mode = this.app.vault.getConfig("defaultViewMode");
