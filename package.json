@@ -11,6 +11,8 @@
   "author": "Die4passion",
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^21.0.3",
+    "@rollup/plugin-node-resolve": "^13.1.3",
     "obsidian": "latest"
   },
   "dependencies": {
