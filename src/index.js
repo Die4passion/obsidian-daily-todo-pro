@@ -172,9 +172,8 @@ export default class RolloverTodosPlugin extends Plugin {
                 todos_yesterday[i] = '\n' + todos_yesterday[i] + '\n'
               }
             }
-            //
-            my_todo.push(todos_yesterday[i])
           }
+          my_todo.push(todos_yesterday[i])
         }
       }
 
