@@ -115,15 +115,10 @@ export default class RolloverTodosPlugin extends Plugin {
         moment(b.basename, format).valueOf() -
         moment(a.basename, format).valueOf()
     )
-    if (random === false) {
-      return sorted[1]
-    } else {
+    if (random !== false) {
       sorted.shift()
-      // sorted.shift()
-      // console.log(sorted)
-      this.shuffle(sorted)
-      return sorted[0]
     }
+    return sorted[1]
   }
 
   async getAllUnfinishedTodos (file, templateHeading) {
@@ -165,15 +160,15 @@ export default class RolloverTodosPlugin extends Plugin {
             }
             header_count++
           } else {
-            if (todos_yesterday[i].startsWith('# ')) {
+            if (todos_yesterday[i].startsWith('#')) {
               if (i > 0 && todos_yesterday[i - 1].endsWith('\n')) {
                 todos_yesterday[i] = todos_yesterday[i] + '\n'
               } else {
                 todos_yesterday[i] = '\n' + todos_yesterday[i] + '\n'
               }
             }
+            my_todo.push(todos_yesterday[i])
           }
-          my_todo.push(todos_yesterday[i])
         }
       }
 
@@ -317,7 +312,6 @@ export default class RolloverTodosPlugin extends Plugin {
       let templateHeadingNotFoundMessage = ''
       const templateHeadingSelected = templateHeading !== 'none'
 
-
       if (todos_today.length > 0) {
         let dailyNoteContent = await this.app.vault.read(file)
         undoHistoryInstance.today = {
@@ -383,7 +377,6 @@ export default class RolloverTodosPlugin extends Plugin {
           }
 
           const lastYearToday_String = `\n${lastYearToday.join('\n')}`
-
 
           dailyNoteContent += lastYearToday_String
         }
