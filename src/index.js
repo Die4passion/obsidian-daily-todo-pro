@@ -381,6 +381,7 @@ export default class RolloverTodosPlugin extends Plugin {
           dailyNoteContent += lastYearToday_String
         }
         // return
+        dailyNoteContent += '\n'
 
         // 最终执行 更改文件
         await this.app.vault.modify(file, dailyNoteContent)
@@ -401,7 +402,21 @@ export default class RolloverTodosPlugin extends Plugin {
           }
         }
 
-        const modifiedContent = lines.join('\n')
+        let modifiedContent = lines.join('\n')
+
+        let modifiedContentLines = modifiedContent.split('\n')
+
+        for (let i = modifiedContentLines.length; i >= 0; i--) {
+          if (
+            i > 0 &&
+            modifiedContentLines[i] == '' &&
+            modifiedContentLines[i - 1] == ''
+          ) {
+            modifiedContentLines.splice(i, 1)
+          }
+        }
+
+        modifiedContent = modifiedContentLines.join('\n')
 
         await this.app.vault.modify(lastDailyNote, modifiedContent)
       }
