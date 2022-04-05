@@ -379,9 +379,9 @@ export default class RolloverTodosPlugin extends Plugin {
           const lastYearToday_String = `\n${lastYearToday.join('\n')}`
 
           dailyNoteContent += lastYearToday_String
+          dailyNoteContent += '\n'
         }
         // return
-        dailyNoteContent += '\n'
 
         // 最终执行 更改文件
         await this.app.vault.modify(file, dailyNoteContent)
