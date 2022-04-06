@@ -90,11 +90,11 @@ export default class DailyTodoProPlugin extends Plugin {
     // get unfinished todos from yesterday, if exist
     const contents = await this.app.vault.cachedRead(file)
 
-    // 
+    //
     const listItems = this.app.metadataCache.getFileCache(file)?.listItems
     let taskUndoCount = 0
 
-    if(listItems) {
+    if (listItems) {
       for (const key in listItems) {
         if (Object.hasOwnProperty.call(listItems, key)) {
           const element = listItems[key]
@@ -106,7 +106,7 @@ export default class DailyTodoProPlugin extends Plugin {
 
     if (taskUndoCount == 0) {
       return []
-    } 
+    }
 
     // for (element = listItems[index]) element.task something
     // todo: task?: ' ' | 'x' | '?';, deal diffrently (requirements from forum)
@@ -147,7 +147,6 @@ export default class DailyTodoProPlugin extends Plugin {
         contents.matchAll(unfinishedTodosRegex),
         m => m[0]
       )
-
 
       for (let i = 0; i < todos_yesterday.length; i++) {
         // 1. 筛选 等于templateHeading才开始循环
