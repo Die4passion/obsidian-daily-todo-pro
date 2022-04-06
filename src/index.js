@@ -1,4 +1,11 @@
-import { Notice, Plugin, Setting, PluginSettingTab } from 'obsidian'
+import {
+  Notice,
+  Plugin,
+  Setting,
+  PluginSettingTab,
+  moment,
+  Tasks
+} from 'obsidian'
 import {
   getDailyNoteSettings,
   getAllDailyNotes,
@@ -7,35 +14,9 @@ import {
 import UndoModal from './ui/UndoModal'
 import RolloverSettingTab from './ui/RolloverSettingTab'
 
-const MAX_TIME_SINCE_CREATION = 5000 // 5 seconds
-// Just some boilerplate code for recursively going through subheadings for later
-// function createRepresentationFromHeadings (headings) {
-//   let i = 0
-//   const tags = []
+const MAX_TIME_SINCE_CREATION = 5000
 
-//   ;(function recurse (depth) {
-//     let unclosedLi = false
-//     while (i < headings.length) {
-//       const [hashes, data] = headings[i].split('# ')
-//       if (hashes.length < depth) {
-//         break
-//       } else if (hashes.length === depth) {
-//         if (unclosedLi) tags.push('</li>')
-//         unclosedLi = true
-//         tags.push('<li>', data)
-//         i++
-//       } else {
-//         tags.push('<ul>')
-//         recurse(depth + 1)
-//         tags.push('</ul>')
-//       }
-//     }
-//     if (unclosedLi) tags.push('</li>')
-//   })(-1)
-//   return tags.join('\n')
-// }
-
-export default class RolloverTodosPlugin extends Plugin {
+export default class DailyTodoProPlugin extends Plugin {
   async loadSettings () {
     const DEFAULT_SETTINGS = {
       templateHeading: 'none',
@@ -66,153 +47,148 @@ export default class RolloverTodosPlugin extends Plugin {
 
   shuffle (array) {
     for (let i = array.length - 1; i > 0; i--) {
-      let j = Math.floor(Math.random() * (i + 1)) // 从 0 到 i 的随机索引
-
-      // 交换元素 array[i] 和 array[j]
-      // 我们使用“解构分配（destructuring assignment）”语法来实现它
-      // 你将在后面的章节中找到有关该语法的更多详细信息
-      // 可以写成：
-      // let t = array[i]; array[i] = array[j]; array[j] = t
+      let j = Math.floor(Math.random() * (i + 1))
       ;[array[i], array[j]] = [array[j], array[i]]
     }
   }
 
-  // createSelectedFileStore () {
-  //   const store = writable(null)
-  //   return Object.assign(
-  //     {
-  //       setFile: file => {
-  //         const id = getDateUIDFromFile(file)
-  //         store.set(id)
-  //       }
-  //     },
-  //     store
-  //   )
-  // }
-
   getLastDailyNote (random = false) {
-    const { moment } = window
     const { folder, format } = getDailyNoteSettings()
 
     // get all notes in directory that aren't null
     const dailyNoteFiles = this.app.vault
-      .getAllLoadedFiles()
+      .getMarkdownFiles()
       .filter(file => file.path.startsWith(folder))
       .filter(file => file.basename != null)
 
     // remove notes that are from the future
-    const todayMoment = moment()
     let dailyNotesTodayOrEarlier = []
     dailyNoteFiles.forEach(file => {
-      if (moment(file.basename, format).isSameOrBefore(todayMoment, 'day')) {
-        dailyNotesTodayOrEarlier.push(file)
+      if (moment(file.basename, format).isSameOrBefore(moment(), 'day')) {
+        dailyNotesTodayOrEarlier[moment(file.basename, format).valueOf()] = file
       }
     })
 
     // sort by date
-    const sorted = dailyNotesTodayOrEarlier.sort(
-      (a, b) =>
-        moment(b.basename, format).valueOf() -
-        moment(a.basename, format).valueOf()
-    )
-    if (random !== false) {
-      sorted.shift()
+    const sorted = dailyNotesTodayOrEarlier.sort((a, b) => a - b)
+
+    const sortedFinal = []
+    for (const key in sorted) {
+      if (Object.hasOwnProperty.call(sorted, key)) {
+        sortedFinal.push(sorted[key])
+      }
     }
-    return sorted[1]
+
+    if (random !== false) {
+      sortedFinal.shuffle()
+    }
+
+    return sortedFinal[1]
   }
 
   async getAllUnfinishedTodos (file, templateHeading) {
     // get unfinished todos from yesterday, if exist
-    const contents = await this.app.vault.read(file)
-    // 标签# 长度
+    const contents = await this.app.vault.cachedRead(file)
 
-    // check if there is a daily note from yesterday
+    // get files with todos
+    const listItems = this.app.metadataCache.getFileCache(file)?.listItems
+    // todo: task?: ' ' | 'x' | '?';, deal diffrently (requirements from forum)
+    /**
+     * means:
+     * 
+     * ?   =  dones yesterday
+     * x   =  dones today
+     * ''  =  todo today
+     * 
+     * today from yesterday:
+     * 
+     * ?  -> none
+     * x  -> ?
+     * '' -> ''
+     * 
+     * choose del in setting: in yesterday
+     *
+     * '' -> none 
+     *
+     */
+    if (listItems) {
+      for (let index = 0; index < listItems.length; index++) {
+        const element = listItems[index]
+        if (element.task === ' ') {
+          let unfinishedTodosRegex = /\t*-\s\[\s\].*/g
+          let my_todo = []
 
-    let unfinishedTodosRegex = /\t*- \[ \].*/g
-    let my_todo = []
+          if (templateHeading !== 'none') {
+            const templateHeadingLength = templateHeading.match(/#{1,}/)[0]
+              .length
+            unfinishedTodosRegex = new RegExp(
+              '\\t*((-\\s\\[\\s\\])|(#{' +
+                String(templateHeadingLength) +
+                ',})) .*',
+              'g'
+            )
+            // console.log(unfinishedTodosRegex)
+            const my_headerIdentify = '#'.repeat(templateHeadingLength) + ' '
+            let header_count = 0
+            let my_todo_start_now = false
 
-    if (templateHeading !== 'none') {
-      const templateHeadingLength = templateHeading.match(/#{1,}/)[0].length
-      unfinishedTodosRegex = new RegExp(
-        '\\t*((- \\[ \\])|(#{' + String(templateHeadingLength) + ',})) .*',
-        'g'
-      )
-      // console.log(unfinishedTodosRegex)
-      const my_headerIdentify = '#'.repeat(templateHeadingLength) + ' '
-      let header_count = 0
-      let my_todo_start_now = false
+            let todos_yesterday = Array.from(
+              contents.matchAll(unfinishedTodosRegex),
+              m => m[0]
+            )
 
-      let todos_yesterday = Array.from(
-        contents.matchAll(unfinishedTodosRegex),
-        m => m[0]
-      )
-
-      for (let i = 0; i < todos_yesterday.length; i++) {
-        // 1. 筛选 等于templateHeading才开始循环
-        if (todos_yesterday[i].startsWith(templateHeading)) {
-          my_todo_start_now = true
-          continue
-        }
-        if (my_todo_start_now) {
-          if (todos_yesterday[i].startsWith(my_headerIdentify)) {
-            if (header_count > 0) {
-              break
-            }
-            header_count++
-          } else {
-            if (todos_yesterday[i].startsWith('#')) {
-              if (i > 0 && todos_yesterday[i - 1].endsWith('\n')) {
-                todos_yesterday[i] = todos_yesterday[i] + '\n'
-              } else {
-                todos_yesterday[i] = '\n' + todos_yesterday[i] + '\n'
+            for (let i = 0; i < todos_yesterday.length; i++) {
+              // 1. 筛选 等于templateHeading才开始循环
+              if (todos_yesterday[i].startsWith(templateHeading)) {
+                my_todo_start_now = true
+                continue
+              }
+              if (my_todo_start_now) {
+                if (todos_yesterday[i].startsWith(my_headerIdentify)) {
+                  if (header_count > 0) {
+                    break
+                  }
+                  header_count++
+                } else {
+                  if (todos_yesterday[i].startsWith('#')) {
+                    if (i > 0 && todos_yesterday[i - 1].endsWith('\n')) {
+                      todos_yesterday[i] = todos_yesterday[i] + '\n'
+                    } else {
+                      todos_yesterday[i] = '\n' + todos_yesterday[i] + '\n'
+                    }
+                  }
+                  my_todo.push(todos_yesterday[i])
+                }
               }
             }
-            my_todo.push(todos_yesterday[i])
+
+            // for (let todo of todos_yesterday) {
+            //   if (todo.startsWith(my_headerIdentify)) {
+            //     if (header_count > 0) {
+            //       break
+            //     }
+            //     header_count++
+            //   } else {
+            //     if (todo.startsWith('#')) {
+            //       todo = '\n' + todo + '\n'
+            //     }
+            //     // 如果连续的# 没有 - [] 会多一个空行
+            //     //
+            //     my_todo.push(todo)
+            //   }
+            // }
+          } else {
+            my_todo = Array.from(
+              contents.matchAll(unfinishedTodosRegex),
+              m => m[0]
+            )
           }
+          return my_todo
         }
       }
-
-      // for (let todo of todos_yesterday) {
-      //   if (todo.startsWith(my_headerIdentify)) {
-      //     if (header_count > 0) {
-      //       break
-      //     }
-      //     header_count++
-      //   } else {
-      //     if (todo.startsWith('#')) {
-      //       todo = '\n' + todo + '\n'
-      //     }
-      //     // 如果连续的# 没有 - [] 会多一个空行
-      //     //
-      //     my_todo.push(todo)
-      //   }
-      // }
-    } else {
-      my_todo = Array.from(contents.matchAll(unfinishedTodosRegex), m => m[0])
     }
-
-    // console.log(contents)
-    // const unfinishedTodosRegex = /\t*- \[ \].*/g
-    // const unfinishedTodos = Array.from(
-    //   contents.matchAll(unfinishedTodosRegex)
-    // ).map(([todo]) => todo)
-
-    return my_todo
+    return ''
   }
-
-  // async sortHeadersIntoHeirarchy (file) {
-  //   ///console.log('testing')
-  //   const templateContents = await this.app.vault.read(file)
-  //   const allHeadings = Array.from(templateContents.matchAll(/#{1,} .*/g)).map(
-  //     ([heading]) => heading
-  //   )
-
-  //   console.log(allHeadings)
-
-  //   if (allHeadings.length > 0) {
-  //     console.log(createRepresentationFromHeadings(allHeadings))
-  //   }
-  // }
 
   async rollover (file = undefined) {
     /*** First we check if the file created is actually a valid daily note ***/
@@ -222,7 +198,7 @@ export default class RolloverTodosPlugin extends Plugin {
     // Rollover can be called, but we need to get the daily file
     if (file == undefined) {
       const allDailyNotes = getAllDailyNotes()
-      file = getDailyNote(window.moment(), allDailyNotes)
+      file = getDailyNote(moment(), allDailyNotes)
       ignoreCreationTime = true
     }
     if (!file) return
@@ -232,7 +208,7 @@ export default class RolloverTodosPlugin extends Plugin {
 
     // is today's daily note
     const today = new Date()
-    const todayFormatted = window.moment(today).format(format)
+    const todayFormatted = moment(today).format(format)
     if (todayFormatted !== file.basename) return
 
     // was just created
@@ -313,7 +289,7 @@ export default class RolloverTodosPlugin extends Plugin {
       const templateHeadingSelected = templateHeading !== 'none'
 
       if (todos_today.length > 0) {
-        let dailyNoteContent = await this.app.vault.read(file)
+        let dailyNoteContent = await this.app.vault.cachedRead(file)
         undoHistoryInstance.today = {
           file: file,
           oldContent: `${dailyNoteContent}`
@@ -357,10 +333,9 @@ export default class RolloverTodosPlugin extends Plugin {
         if (displayTodayInHistory) {
           let lastYearToday = [todayHistoryHeader + '\n']
 
-          // const today = new Date()
-
-          const now = window.moment()
-          const [year, month, day] = now.format('YYYY-MM-DD').split('-')
+          const [year, month, day] = moment()
+            .format('YYYY-MM-DD')
+            .split('-')
 
           // 显示双链还是反链
           let historyBeginWith = `- [[`
@@ -389,7 +364,9 @@ export default class RolloverTodosPlugin extends Plugin {
 
       // if deleteOnComplete, get yesterday's content and modify it
       if (deleteOnComplete) {
-        let lastDailyNoteContent = await this.app.vault.read(lastDailyNote)
+        let lastDailyNoteContent = await this.app.vault.cachedRead(
+          lastDailyNote
+        )
         undoHistoryInstance.previousDay = {
           file: lastDailyNote,
           oldContent: `${lastDailyNoteContent}`
@@ -487,12 +464,11 @@ export default class RolloverTodosPlugin extends Plugin {
       callback: () => {
         // const activeFile = this.createSelectedFileStore();
         const existingFile = this.getLastDailyNote(1)
-        const { workspace } = this.app
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // const mode = this.app.vault.getConfig("defaultViewMode");
-        const leaf = workspace.getUnpinnedLeaf()
-        leaf.openFile(existingFile)
-        // activeFile.setFile(existingFile);
+        if (!existingFile) {
+          console.log(`Something wrong with Lucky Note.`)
+          return
+        }
+        this.app.workspace.getUnpinnedLeaf().openFile(existingFile)
       }
     })
 
@@ -502,8 +478,8 @@ export default class RolloverTodosPlugin extends Plugin {
       checkCallback: checking => {
         // no history, don't allow undo
         if (this.undoHistory.length > 0) {
-          const now = window.moment()
-          const lastUse = window.moment(this.undoHistoryTime)
+          const now = moment()
+          const lastUse = moment(this.undoHistoryTime)
           const diff = now.diff(lastUse, 'seconds')
           // 5+ mins since use: don't allow undo
           if (diff > 5 * 60) {

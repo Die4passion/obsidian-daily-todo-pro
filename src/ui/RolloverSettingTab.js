@@ -16,7 +16,7 @@ export default class RolloverSettingTab extends PluginSettingTab {
       file = this.app.vault.getAbstractFileByPath(template + '.md')
     }
 
-    const templateContents = await this.app.vault.read(file)
+    const templateContents = await this.app.vault.cachedRead(file)
     const allHeadings = Array.from(templateContents.matchAll(/#{1,} .*/g)).map(
       ([heading]) => heading
     )

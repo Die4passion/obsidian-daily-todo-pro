@@ -32,7 +32,7 @@ export default class UndoModal extends Modal {
 
   async confirmUndo(undoHistoryInstance) {
     await this.plugin.app.vault.modify(undoHistoryInstance.today.file, undoHistoryInstance.today.oldContent);
-    if (undoHistoryInstance.previousDay.file != undefined) {
+    if (undoHistoryInstance.previousDay.file) {
       await this.plugin.app.vault.modify(undoHistoryInstance.previousDay.file, undoHistoryInstance.previousDay.oldContent);
     }
     this.plugin.undoHistory = []
@@ -47,7 +47,7 @@ export default class UndoModal extends Modal {
 
     const undoHistoryInstance = plugin.undoHistory[0]
     let modTextArray = [await this.parseDay(undoHistoryInstance.today)]
-    if (undoHistoryInstance.previousDay.file != undefined) {
+    if (undoHistoryInstance.previousDay.file) {
       modTextArray.push(await this.parseDay(undoHistoryInstance.previousDay))
     }
     modTextArray.forEach(txt => {
@@ -58,8 +58,8 @@ export default class UndoModal extends Modal {
       .addButton(button => button
         .setButtonText('Confirm Undo')
         .onClick(async (e) => {
-          await this.confirmUndo(undoHistoryInstance)
           this.close()
+          await this.confirmUndo(undoHistoryInstance)
         })
       )
   }
