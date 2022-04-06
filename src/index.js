@@ -91,103 +91,75 @@ export default class DailyTodoProPlugin extends Plugin {
     const contents = await this.app.vault.cachedRead(file)
 
     // get files with todos
-    const listItems = this.app.metadataCache.getFileCache(file)?.listItems
+    // const listItems = this.app.metadataCache.getFileCache(file)?.listItems
+    // for (element = listItems[index]) element.task something
     // todo: task?: ' ' | 'x' | '?';, deal diffrently (requirements from forum)
     /**
      * means:
-     * 
+     *
      * ?   =  dones yesterday
      * x   =  dones today
      * ''  =  todo today
-     * 
+     *
      * today from yesterday:
-     * 
+     *
      * ?  -> none
      * x  -> ?
      * '' -> ''
-     * 
+     *
      * choose del in setting: in yesterday
      *
-     * '' -> none 
+     * '' -> none
      *
      */
-    if (listItems) {
-      for (let index = 0; index < listItems.length; index++) {
-        const element = listItems[index]
-        if (element.task === ' ') {
-          let unfinishedTodosRegex = /\t*-\s\[\s\].*/g
-          let my_todo = []
 
-          if (templateHeading !== 'none') {
-            const templateHeadingLength = templateHeading.match(/#{1,}/)[0]
-              .length
-            unfinishedTodosRegex = new RegExp(
-              '\\t*((-\\s\\[\\s\\])|(#{' +
-                String(templateHeadingLength) +
-                ',})) .*',
-              'g'
-            )
-            // console.log(unfinishedTodosRegex)
-            const my_headerIdentify = '#'.repeat(templateHeadingLength) + ' '
-            let header_count = 0
-            let my_todo_start_now = false
+    let unfinishedTodosRegex = /\t*-\s\[\s\].*/g
+    let my_todo = []
 
-            let todos_yesterday = Array.from(
-              contents.matchAll(unfinishedTodosRegex),
-              m => m[0]
-            )
+    if (templateHeading !== 'none') {
+      const templateHeadingLength = templateHeading.match(/#{1,}/)[0].length
+      unfinishedTodosRegex = new RegExp(
+        '\\t*((-\\s\\[\\s\\])|(#{' + String(templateHeadingLength) + ',})) .*',
+        'g'
+      )
+      // console.log(unfinishedTodosRegex)
+      const my_headerIdentify = '#'.repeat(templateHeadingLength) + ' '
+      let header_count = 0
+      let my_todo_start_now = false
 
-            for (let i = 0; i < todos_yesterday.length; i++) {
-              // 1. 筛选 等于templateHeading才开始循环
-              if (todos_yesterday[i].startsWith(templateHeading)) {
-                my_todo_start_now = true
-                continue
-              }
-              if (my_todo_start_now) {
-                if (todos_yesterday[i].startsWith(my_headerIdentify)) {
-                  if (header_count > 0) {
-                    break
-                  }
-                  header_count++
-                } else {
-                  if (todos_yesterday[i].startsWith('#')) {
-                    if (i > 0 && todos_yesterday[i - 1].endsWith('\n')) {
-                      todos_yesterday[i] = todos_yesterday[i] + '\n'
-                    } else {
-                      todos_yesterday[i] = '\n' + todos_yesterday[i] + '\n'
-                    }
-                  }
-                  my_todo.push(todos_yesterday[i])
-                }
+      let todos_yesterday = Array.from(
+        contents.matchAll(unfinishedTodosRegex),
+        m => m[0]
+      )
+
+      for (let i = 0; i < todos_yesterday.length; i++) {
+        // 1. 筛选 等于templateHeading才开始循环
+        if (todos_yesterday[i].startsWith(templateHeading)) {
+          my_todo_start_now = true
+          continue
+        }
+        if (my_todo_start_now) {
+          if (todos_yesterday[i].startsWith(my_headerIdentify)) {
+            if (header_count > 0) {
+              break
+            }
+            header_count++
+          } else {
+            if (todos_yesterday[i].startsWith('#')) {
+              if (i > 0 && todos_yesterday[i - 1].endsWith('\n')) {
+                todos_yesterday[i] = todos_yesterday[i] + '\n'
+              } else {
+                todos_yesterday[i] = '\n' + todos_yesterday[i] + '\n'
               }
             }
-
-            // for (let todo of todos_yesterday) {
-            //   if (todo.startsWith(my_headerIdentify)) {
-            //     if (header_count > 0) {
-            //       break
-            //     }
-            //     header_count++
-            //   } else {
-            //     if (todo.startsWith('#')) {
-            //       todo = '\n' + todo + '\n'
-            //     }
-            //     // 如果连续的# 没有 - [] 会多一个空行
-            //     //
-            //     my_todo.push(todo)
-            //   }
-            // }
-          } else {
-            my_todo = Array.from(
-              contents.matchAll(unfinishedTodosRegex),
-              m => m[0]
-            )
+            my_todo.push(todos_yesterday[i])
           }
-          return my_todo
         }
       }
+    } else {
+      my_todo = Array.from(contents.matchAll(unfinishedTodosRegex), m => m[0])
     }
-    return ''
+    return my_todo
   }
 
   async rollover (file = undefined) {
