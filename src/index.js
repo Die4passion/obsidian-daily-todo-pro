@@ -45,12 +45,12 @@ export default class DailyTodoProPlugin extends Plugin {
     return dailyNotesEnabled || periodicNotesEnabled
   }
 
-  shuffle (array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      let j = Math.floor(Math.random() * (i + 1))
-      ;[array[i], array[j]] = [array[j], array[i]]
-    }
-  }
+  // shuffle (array) {
+  //   for (let i = array.length - 1; i > 0; i--) {
+  //     let j = Math.floor(Math.random() * (i + 1))
+  //     ;[array[i], array[j]] = [array[j], array[i]]
+  //   }
+  // }
 
   getLastDailyNote (random = false) {
     const { folder, format } = getDailyNoteSettings()
@@ -80,6 +80,7 @@ export default class DailyTodoProPlugin extends Plugin {
     }
 
     if (random !== false) {
+      sortedFinal.shift()
       sortedFinal.shuffle()
     }
 
