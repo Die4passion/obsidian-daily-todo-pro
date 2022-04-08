@@ -278,7 +278,7 @@ export default class DailyTodoProPlugin extends Plugin {
       const templateHeadingSelected = templateHeading !== 'none'
 
       if (todos_today.length > 0) {
-        let dailyNoteContent = await this.app.vault.cachedRead(file)
+        let dailyNoteContent = await this.app.vault.read(file)
         undoHistoryInstance.today = {
           file: file,
           oldContent: `${dailyNoteContent}`
@@ -435,11 +435,13 @@ export default class DailyTodoProPlugin extends Plugin {
 
     this.addSettingTab(new RolloverSettingTab(this.app, this))
 
-    this.registerEvent(
-      this.app.vault.on('create', async file => {
-        this.rollover(file)
-      })
-    )
+    // can not find how to trigger event after load the template
+    // so close this feature now
+    // this.registerEvent(
+    //   this.app.vault.on('create', async file => {
+    //     this.rollover(file)
+    //   })
+    // )
 
     this.addCommand({
       id: 'obsidian-daily-todo-pro-rollover',
