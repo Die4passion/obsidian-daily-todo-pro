@@ -130,13 +130,13 @@ export default class DailyTodoProPlugin extends Plugin {
      *
      */
 
-    let unfinishedTodosRegex = /\t*-\s\[\s\].*/g
+    let unfinishedTodosRegex = /\t*[-+*]\s\[\s\].*/g
     let my_todo = []
 
     if (templateHeading !== 'none') {
       const templateHeadingLength = templateHeading.match(/#{1,}/)[0].length
       unfinishedTodosRegex = new RegExp(
-        '\\t*((-\\s\\[\\s\\])|(#{' + String(templateHeadingLength) + ',})) .*',
+        '\\t*(([-+*]\\s\\[\\s\\])|(#{' + String(templateHeadingLength) + ',})) .*',
         'g'
       )
       // console.log(unfinishedTodosRegex)
