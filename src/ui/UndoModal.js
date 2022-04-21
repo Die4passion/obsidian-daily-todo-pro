@@ -16,14 +16,14 @@ export default class UndoModal extends Modal {
 
     let s = ''
     if (oldContentLineCount > currentContentLineCount) {
-      s = `- ${file.basename}.${file.extension}: add ${diff} line${diff.length > 1 ? 's':''}.`
+      s = `- ${file.name}: add ${diff} line${diff.length > 1 ? 's':''}.`
     } else if (oldContentLineCount < currentContentLineCount) {
-      s = `- ${file.basename}.${file.extension}: remove ${diff} line${diff.length > 1 ? 's':''}.`
+      s = `- ${file.name}: remove ${diff} line${diff.length > 1 ? 's':''}.`
     } else {
       if (oldContent == currentContent) {
-        s = `- ${file.basename}.${file.extension}: will not be modified.`
+        s = `- ${file.name}: will not be modified.`
       } else {
-        s = `- ${file.basename}.${file.extension}: will be modified to its previous state, with the same number of lines (but different content).`
+        s = `- ${file.name}: will be modified to its previous state, with the same number of lines (but different content).`
       }
     }
 

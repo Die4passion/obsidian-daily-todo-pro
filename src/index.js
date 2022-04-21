@@ -82,21 +82,30 @@ export default class DailyTodoProPlugin extends Plugin {
     // get unfinished todos from yesterday, if exist
     const contents = await this.app.vault.cachedRead(file)
 
-    //
+    /**
+     * 1. 找到所有heading
+     * 2. 找到所有todo
+     * 3. 筛选heading 和 下一个同级heading之间的todo
+     * 4.
+     */
     const listItems = this.app.metadataCache.getFileCache(file)?.listItems
-    let taskUndoCount = 0
+    let noTaskUndo = true
 
     if (listItems) {
       for (const key in listItems) {
         if (Object.hasOwnProperty.call(listItems, key)) {
           const element = listItems[key]
           // console.log(element.task)
+          if (listItems[key].task == ' ') {
+            noTaskUndo = false
+            break
+          }
           element.task == ' ' && taskUndoCount++
         }
       }
     }
 
-    if (taskUndoCount == 0) {
+    if (noTaskUndo) {
       return []
     }
 
