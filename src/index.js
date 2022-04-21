@@ -56,35 +56,26 @@ export default class DailyTodoProPlugin extends Plugin {
     const { folder, format } = getDailyNoteSettings()
 
     // get all notes in directory that aren't null
+    // and filter name by date
     const dailyNoteFiles = this.app.vault
       .getMarkdownFiles()
       .filter(file => file.path.startsWith(folder))
       .filter(file => file.basename != null)
-
-    // remove notes that are from the future
-    let dailyNotesTodayOrEarlier = []
-    dailyNoteFiles.forEach(file => {
-      if (moment(file.basename, format).isSameOrBefore(moment(), 'day')) {
-        dailyNotesTodayOrEarlier[moment(file.basename, format).valueOf()] = file
-      }
-    })
-
-    // sort by date
-    const sorted = dailyNotesTodayOrEarlier.sort((a, b) => a - b)
-
-    const sortedFinal = []
-    for (const key in sorted) {
-      if (Object.hasOwnProperty.call(sorted, key)) {
-        sortedFinal.push(sorted[key])
-      }
-    }
+      .filter(file =>
+        moment(file.basename, format).isSameOrBefore(moment(), 'day')
+      )
+      .sort(
+        (a, b) =>
+          moment(b.basename, format).valueOf() -
+          moment(a.basename, format).valueOf()
+      )
 
     if (random !== false) {
-      sortedFinal.shift()
-      sortedFinal.shuffle()
+      dailyNoteFiles.shift()
+      dailyNoteFiles.shuffle()
     }
 
-    return sortedFinal[1]
+    return dailyNoteFiles[1]
   }
 
   async getAllUnfinishedTodos (file, templateHeading) {
@@ -136,7 +127,9 @@ export default class DailyTodoProPlugin extends Plugin {
     if (templateHeading !== 'none') {
       const templateHeadingLength = templateHeading.match(/#{1,}/)[0].length
       unfinishedTodosRegex = new RegExp(
-        '\\t*(([-+*]\\s\\[\\s\\])|(#{' + String(templateHeadingLength) + ',})) .*',
+        '\\t*(([-+*]\\s\\[\\s\\])|(#{' +
+          String(templateHeadingLength) +
+          ',})) .*',
         'g'
       )
       // console.log(unfinishedTodosRegex)
@@ -176,6 +169,7 @@ export default class DailyTodoProPlugin extends Plugin {
     } else {
       my_todo = Array.from(contents.matchAll(unfinishedTodosRegex), m => m[0])
     }
+
     return my_todo
   }
 
